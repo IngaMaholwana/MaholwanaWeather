@@ -45,7 +45,11 @@ def signup():
 
 @app.route('/welcome/<username>')
 def welcome(username):
-    return f"<h1>Welcome, {username}!</h1>"
+    return render_template('weather.html', username=username)
+
+@app.route('/weather')
+def weather():
+    return render_template('weather.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
