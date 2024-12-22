@@ -13,7 +13,7 @@ users = {}
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['uname']
+        username = request.form['username']
         password = request.form['password']
 
         # Validate user
@@ -50,6 +50,10 @@ def welcome(username):
 @app.route('/weather')
 def weather():
     return render_template('weather.html')
+
+
+def apikey():
+    open(gitignore)
 
 if __name__ == '__main__':
     app.run(debug=True)
