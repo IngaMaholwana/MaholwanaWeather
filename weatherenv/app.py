@@ -1,14 +1,12 @@
-from flask import Flask, render_template, redirect, url_for, flash,request
+from flask import Flask, render_template, redirect, url_for, flash,request,session,jsonify
+import os
+import datetime
+import requests
 
 app = Flask(__name__)
-app.secret_key = 'move_me_when_all_of_this_is_done'  # For securely flashing messages
+app.secret_key = os.getenv('SECRET_KEY') 
 
-# Temporary storage for user accounts (use a database in production)
 users = {}
-
-# @app.route('/')
-# def home():
-#     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -51,9 +49,98 @@ def welcome(username):
 def weather():
     return render_template('weather.html')
 
+api_key = os.getenv('API_KEY')  
 
-def apikey():
-    open(gitignore)
+def get_current_weather(city, api_key):
+    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
+    response = requests.get(url)
+    if response.status_code == 200:
+        weather_data = response.json()
+        icon_code = weather_data["weather"][0]["icon"]
+        icon_url = f"http://openweathermap.org/img/wn/{icon_code}@2x.png"
+        weather_data["icon_url"] = icon_url
+        return weather_data
+    else:
+        return {"error": f"Failed to fetch weather data: {response.status_code}"}
+
+
+# Function to get 5-day forecast
+def get_5_day_forecast(city, api_key):
+    url = f"http://api.openweathermap.org/data/2.5/forecast?q={city}&appid={api_key}&units=metric"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return {"error": f"Failed to fetch forecast data: {response.status_code}"}
+
+
+# Process 5-day forecast to group by day
+def process_forecast_data(forecast_data):
+    forecast_list = forecast_data.get('list', [])
+    daily_data = {}
+    for forecast in forecast_list:
+        date = datetime.datetime.fromtimestamp(forecast['dt']).date()
+        if date not in daily_data:
+            daily_data[date] = {
+                "temps": [],
+                "icons": [],
+                "descriptions": [],
+            }
+        daily_data[date]["temps"].append(forecast["main"]["temp"])
+        daily_data[date]["icons"].append(forecast["weather"][0]["icon"])
+        daily_data[date]["descriptions"].append(forecast["weather"][0]["description"])
+
+    # Calculate averages and most common values
+    for date, data in daily_data.items():
+        data["avg_temp"] = sum(data["temps"]) / len(data["temps"])
+        data["common_icon"] = data["icons"][0]  # Pick first for simplicity
+        data["common_description"] = max(set(data["descriptions"]), key=data["descriptions"].count)
+
+    return daily_data
+
+
+# API route to fetch weather data
+@app.route('/api/weather', methods=['GET'])
+def api_weather():
+    city = request.args.get('city')
+    if not city:
+        return jsonify({"error": "City is required."}), 400
+
+    try:
+        current_weather = get_current_weather(city, api_key)
+        forecast_data = get_5_day_forecast(city, api_key)
+        processed_forecast = process_forecast_data(forecast_data)
+        return jsonify({
+            "current_weather": current_weather,
+            "forecast": processed_forecast
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# Weather route to render the weather HTML page
+@app.route('/weather', methods=['GET', 'POST'])
+def weather():
+    weather_data = None
+    if request.method == 'POST':
+        city = request.form.get('city')
+        if not city:
+            flash("City is required.", "danger")
+        else:
+            try:
+                current_weather = get_current_weather(city, api_key)
+                forecast_data = get_5_day_forecast(city, api_key)
+                processed_forecast = process_forecast_data(forecast_data)
+                weather_data = {
+                    "current_weather": current_weather,
+                    "forecast": processed_forecast
+                }
+            except Exception as e:
+                flash(f"Error fetching weather data: {str(e)}", "danger")
+
+    return render_template('weather.html', weather_data=weather_data)
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
