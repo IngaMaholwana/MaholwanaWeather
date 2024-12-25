@@ -23,7 +23,7 @@ def login():
                 flash('incorrect password', category='error')
         else:
             flash('email does not exist', category='error') 
-    return render_template("login.html")
+    return render_template("login.html", user=current_user)
 
 @auth.route('/logout')
 @login_required
@@ -68,4 +68,5 @@ def signup():
             return redirect(url_for('views.weatherhomepage'))
 
 
-    return render_template("signup.html")
+    return render_template("signup.html", user=current_user)
+

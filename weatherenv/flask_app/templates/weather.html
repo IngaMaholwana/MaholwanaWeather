@@ -5,18 +5,40 @@ Maholwana Weather Application
 {% endblock %}
 
 {% block content %}
-<form>
+<form method="POST" action="/">
     <div id="weather-container">
         <h2>Maholwana Weather Application</h2>
-        <input type="text" id="city" placeholder="Enter city">
+        <input type="text" id="city" name="city" placeholder="Enter city">
         <input type="submit" value="Search">
 
-        <img id="weather-icon" alt="Weather Icon" style="display:none;">
+        {% if weather_data %}
+        <div id="current-weather">
+            <h3>Today's Weather in {{ weather_data.city }}, {{ weather_data.country }}</h3>
+            <img id="weather-icon" 
+                 src="http://openweathermap.org/img/wn/{{ weather_data.icon }}@2x.png" 
+                 alt="Weather Icon">
+            <p>Temperature: {{ weather_data.temperature }}°C</p>
+            <p>Description: {{ weather_data.description }}</p>
+            <p>Humidity: {{ weather_data.humidity }}%</p>
+            <p>Wind Speed: {{ weather_data.wind_speed }} km/h</p>
+        </div>
+        {% endif %}
 
-        <div id="temp-div"></div>
-        <div id="weather-info"></div>
-        <div id="hourly-forecast"></div>
-        <div id="weekday-forecast"></div>
+        {% if forecast_data %}
+        <div id="forecast-result">
+            <h3>5-Day Forecast</h3>
+            <div class="forecast-container">
+                {% for date, forecast in forecast_data.items() %}
+                <div class="forecast-item">
+                    <p><strong>{{ date }}</strong></p>
+                    <img src="http://openweathermap.org/img/wn/{{ forecast.icon }}@2x.png" alt="Weather Icon">
+                    <p>Avg Temp: {{ forecast.avg_temp }}°C</p>
+                    <p>{{ forecast.description }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 </form>
 {% endblock %}
